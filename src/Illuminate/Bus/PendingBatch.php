@@ -198,6 +198,31 @@ class PendingBatch
     }
 
     /**
+     * Indicate that the batch should treat its first job as a closure to resolve
+     * the batch contents at the point the batch is about to be handled.
+     *
+     * @param  bool  $defer
+     * @return $this
+     */
+    public function defer($defer = true)
+    {
+        $this->options['defer'] = $defer;
+
+        return $this;
+    }
+
+    /**
+     * Determine whether the pending batch will treat its first job as a closure to
+     * resolve the batch contents at the point the batch is about to be handled.
+     *
+     * @return bool
+     */
+    public function isDeferred()
+    {
+        return Arr::get($this->options, 'defer', false) === true;
+    }
+
+    /**
      * Set the name for the batch.
      *
      * @param  string  $name
@@ -284,7 +309,11 @@ class PendingBatch
         try {
             $batch = $repository->store($this);
 
-            $batch = $batch->add($this->jobs);
+            $batch = $batch->add(
+                $this->isDeferred()
+                    ? ($this->jobs->first())()
+                    : $this->jobs
+            );
         } catch (Throwable $e) {
             if (isset($batch)) {
                 $repository->delete($batch->id);

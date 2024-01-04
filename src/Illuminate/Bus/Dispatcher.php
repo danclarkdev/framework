@@ -151,7 +151,8 @@ class Dispatcher implements QueueingDispatcher
      */
     public function batch($jobs)
     {
-        return new PendingBatch($this->container, Collection::wrap($jobs));
+        return (new PendingBatch($this->container, Collection::wrap($jobs)))
+            ->defer($jobs instanceof Closure);
     }
 
     /**

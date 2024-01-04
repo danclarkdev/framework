@@ -8,6 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Collection;
+use Laravel\SerializableClosure\SerializableClosure;
 use Throwable;
 
 class ChainedBatch implements ShouldQueue
@@ -60,6 +61,7 @@ class ChainedBatch implements ShouldQueue
         return $jobs->map(fn ($job) => match (true) {
             is_array($job) => static::prepareNestedBatches(collect($job))->all(),
             $job instanceof Collection => static::prepareNestedBatches($job),
+            $job instanceof PendingBatch && $job->isDeferred() => new DeferredBatch(new SerializableClosure($job->jobs->first()), $job),
             $job instanceof PendingBatch => new ChainedBatch($job),
             default => $job,
         });
